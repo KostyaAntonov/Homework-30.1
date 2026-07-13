@@ -1,10 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Payment
-from rest_framework import viewsets
+from django.contrib.auth import get_user_model
+from rest_framework import viewsets, generics, permissions
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
-from .serializers import PaymentSerializer
+from .models import Payment
+from .serializers import UserSerializer, PaymentSerializer
+
+User = get_user_model()
 
 
 @admin.register(User)
@@ -31,18 +35,41 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ('payment_method', 'payment_date')
 
 
+# CRUD для пользователей
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.action == 'create':  # Регистрация
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+
+# Регистрация пользователя
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(
+            UserSerializer(user).data,
+            status=status.HTTP_201_CREATED
+        )
+
+
+from rest_framework.response import Response
+from rest_framework import status
+
+
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
-
-    # Подключаем бэкенды фильтрации и сортировки
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-
-    # Поля, по которым можно фильтровать
     filterset_fields = ['course', 'lesson', 'payment_method']
-
-    # Поля, по которым можно сортировать
     ordering_fields = ['payment_date']
-
-    # Сортировка по умолчанию (сначала новые)
     ordering = ['-payment_date']
