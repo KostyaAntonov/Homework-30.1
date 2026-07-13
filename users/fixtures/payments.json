@@ -1,0 +1,46 @@
+[
+  {
+    "model": "lms.course",
+    "pk": 1,
+    "fields": {
+      "name": "Тестовый курс Python",
+      "preview": "",
+      "description": "Описание тестового курса для фикстуры"
+    }
+  },
+  {
+    "model": "lms.lesson",
+    "pk": 1,
+    "fields": {
+      "name": "Введение в Python",
+      "description": "Первый урок тестового курса",
+      "preview": "",
+      "video_url": "https://youtube.com/watch?v=test",
+      "course": 1
+    }
+  },
+  {
+    "model": "users.payment",
+    "pk": 1,
+    "fields": {
+      "user": 1,
+      "payment_date": "2023-10-25T10:00:00Z",
+      "course": 1,
+      "lesson": null,
+      "amount": "5000.00",
+      "payment_method": "transfer"
+    }
+  },
+  {
+    "model": "users.payment",
+    "pk": 2,
+    "fields": {
+      "user": 1,
+      "payment_date": "2023-10-26T12:00:00Z",
+      "course": null,
+      "lesson": 1,
+      "amount": "1000.00",
+      "payment_method": "cash"
+    }
+  }
+]

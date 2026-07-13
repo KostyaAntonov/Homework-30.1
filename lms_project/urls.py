@@ -5,7 +5,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('lms.urls')),
+    path('api/lms/', include('lms.urls')),  # Эндпоинты курсов и уроков
+    path('api/users/', include('users.urls')),  # Эндпоинты платежей
 ]
 
 if settings.DEBUG:
