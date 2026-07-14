@@ -15,8 +15,9 @@ class CourseViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             # Просмотр доступен всем авторизованным
             permission_classes = [IsAuthenticated]
-        elif self.action in ['create', 'destroy']:
-            # Создание и удаление только для владельцев (не модераторов)
+        elif self.action == 'create':
+            permission_classes = [IsAuthenticated, ~IsModer]
+        elif self.action == 'destroy':
             permission_classes = [IsAuthenticated, IsOwner]
         else:  # update, partial_update
             # Редактирование для модераторов ИЛИ владельцев
@@ -39,7 +40,13 @@ class CourseViewSet(viewsets.ModelViewSet):
 # CRUD для урока через Generic-классы
 class LessonListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAuthenticated, ~IsModer]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user
