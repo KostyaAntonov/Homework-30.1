@@ -1,15 +1,21 @@
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.response import Response
-from .models import Course, Lesson
 from .serializers import CourseSerializer, LessonSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+from .models import Course, Lesson, Subscription
 from .permissions import IsModer, IsOwner
+from rest_framework.permissions import IsAuthenticated
+from .paginators import StandardResultsSetPagination
 
 
 # CRUD для курса через ViewSet
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -40,6 +46,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 # CRUD для урока через Generic-классы
 class LessonListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -74,3 +81,30 @@ class LessonDestroyAPIView(generics.DestroyAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticated, IsOwner]
+
+
+class SubscriptionToggleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        course_id = request.data.get('course_id')
+
+        if not course_id:
+            return Response({"error": "Не указан course_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        course_item = get_object_or_404(Course, id=course_id)
+
+        # Проверяем наличие подписки
+        subs_item = Subscription.objects.filter(user=user, course=course_item)
+
+        if subs_item.exists():
+            # Если есть - удаляем
+            subs_item.delete()
+            message = 'подписка удалена'
+        else:
+            # Если нет - создаем
+            Subscription.objects.create(user=user, course=course_item)
+            message = 'подписка добавлена'
+
+        return Response({"message": message}, status=status.HTTP_200_OK)
