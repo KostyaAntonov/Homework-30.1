@@ -9,6 +9,7 @@ from .models import Course, Lesson, Subscription
 from .permissions import IsModer, IsOwner
 from rest_framework.permissions import IsAuthenticated
 from .paginators import StandardResultsSetPagination
+from .tasks import send_course_update_emails
 
 
 # CRUD для курса через ViewSet
@@ -19,28 +20,39 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
-            # Просмотр доступен всем авторизованным
             permission_classes = [IsAuthenticated]
         elif self.action == 'create':
             permission_classes = [IsAuthenticated, ~IsModer]
         elif self.action == 'destroy':
             permission_classes = [IsAuthenticated, IsOwner]
-        else:  # update, partial_update
-            # Редактирование для модераторов ИЛИ владельцев
+        else:
             permission_classes = [IsAuthenticated, IsModer | IsOwner]
         return [permission() for permission in permission_classes]
 
     def perform_create(self, serializer):
-        # Автоматически привязываем курс к текущему пользователю
         serializer.save(owner=self.request.user)
 
     def get_queryset(self):
         user = self.request.user
         if user.groups.filter(name='Модератор').exists():
-            # Модератор видит все курсы
             return Course.objects.all()
-        # Обычный пользователь видит только свои курсы
         return Course.objects.filter(owner=user)
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+
+        if response.status_code == 200:
+            course = self.get_object()
+            send_course_update_emails.delay(course.id)
+
+        return response
+
+    def partial_update(self, request, *args, **kwargs):
+        response = super().partial_update(request, *args, **kwargs)
+        if response.status_code == 200:
+            course = self.get_object()
+            send_course_update_emails.delay(course.id)
+        return response
 
 
 # CRUD для урока через Generic-классы
