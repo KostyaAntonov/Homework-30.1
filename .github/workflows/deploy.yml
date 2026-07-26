@@ -2,14 +2,29 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, feature/homework-35.2]
   pull_request:
     branches: [main]
 
 jobs:
-  # Этап 1: Тесты
   test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_lms_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,10 +41,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Django tests
+        env:
+          SECRET_KEY: test-secret-key-for-ci
+          DEBUG: 1
         run: |
-          python manage.py test --verbosity=2
+          python manage.py test --verbosity=2 --settings=lms_project.settings_test
 
-  # Этап 2: Линтер
   lint:
     runs-on: ubuntu-latest
     needs: test
@@ -50,7 +67,6 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
 
-  # Этап 3: Сборка Docker-образа
   build:
     runs-on: ubuntu-latest
     needs: lint
@@ -66,7 +82,6 @@ jobs:
         run: |
           docker images lms-project
 
-  # Этап 4: Деплой (симуляция)
   deploy:
     runs-on: ubuntu-latest
     needs: build
