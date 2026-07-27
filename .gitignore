@@ -19,8 +19,6 @@ media/
 .DS_Store
 =======
 # Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
 *$py.class
 
 # C extensions
@@ -177,4 +175,26 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-.idea/
+
+# Environment
+*.env
+!.env.template
+
+
+.venv/
+
+# Django
+/staticfiles/
+/media/
+
+# IDE
+*.swp
+*.swo
+*~
+
+# Docker
+.docker/
+
+# OS
+Thumbs.db
+coverage.txt
