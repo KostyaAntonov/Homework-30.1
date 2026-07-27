@@ -9,22 +9,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: test_lms_db
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,10 +26,15 @@ jobs:
 
       - name: Run Django tests
         env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: test_lms_db
+          DB_USER: postgres
+          DB_PASSWORD: postgres
           SECRET_KEY: test-secret-key-for-ci
           DEBUG: 1
         run: |
-          python manage.py test --verbosity=2 --settings=lms_project.settings_test
+          python manage.py test --verbosity=2
 
   lint:
     runs-on: ubuntu-latest
@@ -90,19 +79,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Simulate deployment to server
-        run: |
-          echo "=== Deployment Simulation ==="
-          echo "Server IP: ${{ secrets.SERVER_IP }}"
-          echo "Deploying commit: ${{ github.sha }}"
-          echo "Branch: ${{ github.ref }}"
-          echo ""
-          echo "Steps that would be executed on real server:"
-          echo "1. SSH connection to ${{ secrets.SERVER_IP }}"
-          echo "2. git pull origin main"
-          echo "3. pip install -r requirements.txt"
-          echo "4. python manage.py migrate"
-          echo "5. python manage.py collectstatic --noinput"
-          echo "6. sudo systemctl restart lms"
-          echo ""
-          echo "=== Deployment simulation completed successfully ==="
+      - name: Deploy to Yandex Cloud
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/lms/project
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
+            python manage.py migrate --noinput
+            python manage.py collectstatic --noinput
+            sudo systemctl restart lms
+            echo "✅ Deployment completed successfully!"
