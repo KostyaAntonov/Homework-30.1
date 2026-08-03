@@ -14,7 +14,6 @@ from rest_framework.filters import OrderingFilter
 User = get_user_model()
 
 
-@admin.register(User)
 class UserAdmin(BaseUserAdmin):
     list_display = ('email', 'phone', 'city', 'is_staff')
     fieldsets = (
@@ -32,7 +31,6 @@ class UserAdmin(BaseUserAdmin):
     ordering = ('email',)
 
 
-@admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ('user', 'amount', 'payment_method', 'payment_date', 'course', 'lesson')
     list_filter = ('payment_method', 'payment_date')
