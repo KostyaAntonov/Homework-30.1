@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - develop
+  pull_request:
+    branches:
+      - develop
 
 jobs:
   lint:
@@ -43,13 +46,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Build Docker images (проверка сборки)
+      - name: Build Docker images
         run: docker compose build
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/develop'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     steps:
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -59,11 +62,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/lms/project
-            
-            # 1. Обновляем код
             git pull origin develop
             
-            # 2. Создаем .env файл на сервере
             echo "DEBUG=0" > .env
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
             echo "ALLOWED_HOSTS=158.160.241.177,localhost,127.0.0.1,web,nginx" >> .env
@@ -76,10 +76,7 @@ jobs:
             echo "CELERY_BROKER_URL=redis://redis:6379/0" >> .env
             echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" >> .env
             
-            # 3. Пересобираем и запускаем контейнеры
             docker compose down
             docker compose up -d --build
-            
-            # 4. Применяем миграции и собираем статику
             docker compose exec -T web python manage.py migrate
             docker compose exec -T web python manage.py collectstatic --noinput

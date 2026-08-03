@@ -2,15 +2,27 @@
 
 Для запуска проекта с использованием Docker Compose выполните следующие шаги:
 
-1. Убедитесь, что у вас установлены Docker и Docker Desktop.
-
-2. В корне проекта создайте файл `.env` (можете скопировать `.env.example`) и заполните его своими переменными
-   окружения.
-
-3. Запустите сборку и запуск всех сервисов командой:
+1. Клонируйте репозиторий:
    ```bash
-   docker-compose up --build
+   git clone https://github.com/KostyaAntonov/Homework-30.1.git
+   cd Homework-30.1
    
-4. Остановка проекта
+2. Создайте файл окружения на основе примера:
    ```bash
-   docker-compose down
+   cp .env.example .env
+   
+3. Запустите все сервисы одной командой
+   ```bash
+   docker compose up -d --build
+   
+4. Примените миграции базы данных
+   ```bash
+   docker compose exec web python manage.py migrate
+   
+5. Создайте суперпользователя
+   ```bash
+   docker compose exec web python manage.py createsuperuser
+   
+6. Соберите статические файлы
+   ```bash
+   docker compose exec web python manage.py collectstatic --noinput
