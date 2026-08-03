@@ -25,7 +25,7 @@ services:
     container_name: lms_web
     restart: always
     ports:
-      - "8000:8000"
+      - "8001:8000"
     command: gunicorn --bind 0.0.0.0:8000 --workers 3 lms_project.wsgi:application
     volumes:
       - static_volume:/app/staticfiles
